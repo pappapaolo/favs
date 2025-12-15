@@ -18,17 +18,19 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
         window.addEventListener('keydown', handleEsc);
         document.body.style.overflow = 'hidden';
 
-        // Auto-focus name if editable
-        if (isEditable && nameInputRef.current) {
-            nameInputRef.current.focus();
-            nameInputRef.current.select();
-        }
-
         return () => {
             window.removeEventListener('keydown', handleEsc);
             document.body.style.overflow = 'unset';
         };
-    }, [onClose, isEditable]); // Run focus logic when openness updates
+    }, [onClose]);
+
+    // Separate effect for focus to avoid re-running when onClose changes
+    useEffect(() => {
+        if (isEditable && nameInputRef.current) {
+            nameInputRef.current.focus();
+            nameInputRef.current.select();
+        }
+    }, [isEditable]);
 
     const handleChange = (field, value) => {
         const newer = { ...editedProduct, [field]: value };
@@ -40,12 +42,19 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             if (descriptionRef.current) {
-                // Focus and place cursor at end (or select all? prompt said "selected so that i start typing directly")
+                // Focus and place cursor at end
                 descriptionRef.current.focus();
-                // descriptionRef.current.select(); // User said "Description (selected so that i start typing directly)"
             }
         }
     };
+
+    const handleDescriptionKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            onClose();
+        }
+    };
+
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -170,6 +179,7 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                                 ref={descriptionRef}
                                 value={editedProduct.description}
                                 onChange={(e) => handleChange('description', e.target.value)}
+                                onKeyDown={handleDescriptionKeyDown}
                                 style={{
                                     fontSize: '1.1rem', lineHeight: 1.6, color: '#444',
                                     height: '200px', border: 'none', background: 'transparent', outline: 'none',
