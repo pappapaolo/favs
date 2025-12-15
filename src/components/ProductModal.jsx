@@ -114,7 +114,6 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
             >
                 {/* Image Section */}
                 <div
-                    onClick={(e) => e.stopPropagation()} // Stop closing when clicking image area
                     style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
                         height: '100%'
@@ -123,7 +122,10 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                     <img
                         src={editedProduct.image}
                         alt={editedProduct.name}
-                        onClick={() => isEditable && setShowImageMenu(!showImageMenu)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isEditable) setShowImageMenu(!showImageMenu);
+                        }}
                         style={{
                             maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
                             cursor: isEditable ? 'pointer' : 'default'
@@ -134,16 +136,18 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
 
                     {/* Image Menu Overlay */}
                     {isEditable && showImageMenu && (
-                        <div style={{
-                            position: 'absolute',
-                            backgroundColor: 'var(--color-bg-menu)',
-                            boxShadow: 'var(--shadow-menu)',
-                            borderRadius: '8px',
-                            padding: '10px',
-                            display: 'flex', flexDirection: 'column', gap: '8px',
-                            zIndex: 10,
-                            border: '1px solid var(--color-border)'
-                        }}>
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                position: 'absolute',
+                                backgroundColor: 'var(--color-bg-menu)',
+                                boxShadow: 'var(--shadow-menu)',
+                                borderRadius: '8px',
+                                padding: '10px',
+                                display: 'flex', flexDirection: 'column', gap: '8px',
+                                zIndex: 10,
+                                border: '1px solid var(--color-border)'
+                            }}>
                             <button onClick={() => handleImageMenuAction('upload')} style={{ color: 'var(--color-text)' }}>Upload from computer</button>
                             <button onClick={() => handleImageMenuAction('copy')} style={{ color: 'var(--color-text)' }}>Copy image</button>
                             <button onClick={() => handleImageMenuAction('download')} style={{ color: 'var(--color-text)' }}>Download image</button>
@@ -163,19 +167,17 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             opacity: 0, transition: 'opacity 0.2s',
-                            pointerEvents: showImageMenu ? 'none' : 'auto' // Prevent interfering if menu open? Actually, keeping as is.
+                            pointerEvents: showImageMenu ? 'none' : 'auto'
                         }}
                             onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
                             onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
                         >
-                            {/* Only show "Paste" hint if menu not open, purely extra UI. Skipping changes to keep simple. */}
                         </div>
                     )}
                 </div>
 
                 {/* Text/Inputs Section */}
                 <div
-                    onClick={(e) => e.stopPropagation()} // Stop closing when clicking text area
                     style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingRight: '2rem' }}
                 >
                     {isEditable ? (
@@ -184,6 +186,7 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                                 ref={nameInputRef}
                                 value={editedProduct.name}
                                 onChange={(e) => handleChange('name', e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
                                 onKeyDown={handleNameKeyDown}
                                 style={{
                                     fontSize: '2rem', marginBottom: '1rem', fontWeight: 600,
@@ -196,6 +199,7 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                                 ref={descriptionRef}
                                 value={editedProduct.description}
                                 onChange={(e) => handleChange('description', e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
                                 onKeyDown={handleDescriptionKeyDown}
                                 style={{
                                     fontSize: '1.1rem', lineHeight: 1.6, color: 'var(--color-text-muted)',
@@ -207,6 +211,7 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                             <input
                                 value={editedProduct.sponsoredLink || ''}
                                 onChange={(e) => handleChange('sponsoredLink', e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
                                 style={{
                                     fontSize: '0.9rem', color: 'var(--color-text-muted)',
                                     marginTop: '1rem',
@@ -218,8 +223,16 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                         </>
                     ) : (
                         <>
-                            <h2 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 600, color: 'var(--color-text)' }}>{product.name}</h2>
-                            <p style={{ fontSize: '1.1rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
+                            <h2
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 600, color: 'var(--color-text)' }}
+                            >
+                                {product.name}
+                            </h2>
+                            <p
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ fontSize: '1.1rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}
+                            >
                                 {product.description}
                             </p>
                             {product.sponsoredLink && (
@@ -227,6 +240,7 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                                     href={product.sponsoredLink}
                                     target="_blank"
                                     rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
                                     style={{ marginTop: '1rem', color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}
                                 >
                                     Shop Link ↗
