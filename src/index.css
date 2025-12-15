@@ -67,31 +67,34 @@ button {
 /* Wiggle Animation */
 @keyframes wiggle {
   0% {
-    transform: scale(1.05) rotate(0deg);
+    rotate: 0deg;
   }
 
   25% {
-    transform: scale(1.05) rotate(-2deg);
+    rotate: -1.5deg;
   }
 
   50% {
-    transform: scale(1.05) rotate(2deg);
+    rotate: 1.5deg;
   }
 
   75% {
-    transform: scale(1.05) rotate(-1deg);
+    rotate: -0.5deg;
   }
 
   100% {
-    transform: scale(1.05) rotate(0deg);
+    rotate: 0deg;
   }
 }
 
 .product-card {
-  transition: transform 0.2s ease;
+  /* Smooth spring transition for scale */
+  transition: scale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  scale: 1;
 }
 
 .product-card:hover {
-  transform: scale(1.05);
-  animation: wiggle 0.4s ease-in-out;
+  scale: 1.15;
+  /* Wiggle is separate, so scale transition is preserved on exit */
+  animation: wiggle 0.5s ease-in-out;
 }
