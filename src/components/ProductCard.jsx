@@ -8,14 +8,11 @@ const ProductCard = ({ product, onClick }) => {
         cursor: 'pointer',
         padding: '1rem',
         borderRadius: '0px',
-        transition: 'opacity 0.2s ease',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}
       className="product-card"
-      onMouseEnter={(e) => e.currentTarget.style.opacity = 0.8}
-      onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
     >
       <div style={{
         width: '100%',
