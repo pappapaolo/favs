@@ -106,11 +106,13 @@ function App() {
     if (!isAdmin) return;
     const handlePaste = (e) => {
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf("image") !== -1) {
           const blob = items[i].getAsFile();
           const reader = new FileReader();
+
           reader.onload = (event) => {
             const base64 = event.target.result;
             const newProd = {
@@ -119,7 +121,15 @@ function App() {
               image: base64,
               description: 'New pasted item.'
             };
-            saveProducts([...products, newProd]);
+
+            // Use functional update to avoid stale closure
+            setProducts(current => {
+              const updated = [...current, newProd];
+              localStorage.setItem('yourtop100_data', JSON.stringify(updated));
+              return updated;
+            });
+
+            // Open modal immediately
             setSelectedProduct(newProd);
           };
           reader.readAsDataURL(blob);
@@ -128,7 +138,7 @@ function App() {
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [isAdmin, products]);
+  }, [isAdmin]); // Removed 'products' dependency as we use functional update now
 
   return (
     <div className="app">
@@ -226,15 +236,20 @@ function App() {
                   pointerEvents: 'none',
                   whiteSpace: 'nowrap'
                 }}>
-                  Copied to clipboard!
+                  Copied!
                 </span>
               </div>
               <span style={{ color: '#eee' }}>|</span>
               <button onClick={handleReset}>Reset</button>
               <button onClick={handleExport}>Export</button>
+              <span style={{ color: '#eee' }}>|</span>
+              <button onClick={() => {
+                localStorage.removeItem('isAdmin');
+                setIsAdmin(false);
+              }} style={{ color: '#999' }}>Exit Admin</button>
             </>
           ) : (
-            <div style={{ opacity: 0 }}>.</div> // Spacer or hidden trigger if needed later
+            <div style={{ opacity: 0 }}>.</div>
           )}
         </div>
       </footer>
