@@ -41,10 +41,18 @@ function App() {
       }
     }
 
-    // Check for admin flag in URL
+    // Check for admin flag in local storage or URL
+    const savedAdmin = localStorage.getItem('isAdmin') === 'true';
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true') {
+    const magicToken = urlParams.get('edit');
+
+    if (magicToken || savedAdmin) {
       setIsAdmin(true);
+      if (magicToken) {
+        localStorage.setItem('isAdmin', 'true');
+        // Clean URL so it looks nice
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   }, []);
 
@@ -128,6 +136,7 @@ function App() {
         paddingBottom: '2rem',
         paddingLeft: '4rem',
         paddingRight: '4rem',
+        textAlign: 'center'
       }}>
         <h1 style={{
           fontSize: '1.5rem',
@@ -135,11 +144,11 @@ function App() {
           letterSpacing: '-0.02em',
           margin: 0
         }}>
-          yourtop100
+          My favorite stuff
         </h1>
       </header>
 
-      <main className="container" style={{ paddingTop: 0 }}>
+      <main className="container" style={{ paddingTop: 0, paddingBottom: '100px' }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -180,14 +189,32 @@ function App() {
         />
       )}
 
-      <footer style={{ padding: '4rem 4rem', color: '#ccc', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between' }}>
+      <footer style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        padding: '1rem 4rem',
+        color: '#ccc', fontSize: '0.8rem',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 900
+      }}>
         <span>© 2025</span>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {isAdmin && <button onClick={handleReset}>Reset Data</button>}
-          {isAdmin && <button onClick={handleExport}>Export Config</button>}
-          <button onClick={() => setIsAdmin(!isAdmin)} style={{ opacity: 0.2 }}>
-            {isAdmin ? 'Exit Edit' : 'Admin'}
-          </button>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          {isAdmin ? (
+            <>
+              <button onClick={() => {
+                navigator.clipboard.writeText(window.location.origin);
+                alert("Public link copied! Share this with others.");
+              }} style={{ fontWeight: 500, color: '#444' }}>
+                🔗 Copy Public Link
+              </button>
+              <span style={{ color: '#eee' }}>|</span>
+              <button onClick={handleReset}>Reset</button>
+              <button onClick={handleExport}>Export</button>
+            </>
+          ) : (
+            <div style={{ opacity: 0 }}>.</div> // Spacer or hidden trigger if needed later
+          )}
         </div>
       </footer>
     </div>
