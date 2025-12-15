@@ -69,6 +69,78 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
         }
     };
 
+    const handleImageClick = (e) => {
+        // Advanced "Smart Click": Check if click is on transparent pixel or letterbox area
+        try {
+            const img = e.target;
+            const rect = img.getBoundingClientRect();
+
+            // 1. Calculate the actual rendered image dimensions (handling object-fit: contain)
+            const naturalRatio = img.naturalWidth / img.naturalHeight;
+            const visibleRatio = rect.width / rect.height;
+
+            let renderWidth, renderHeight, leftOffset, topOffset;
+
+            if (naturalRatio > visibleRatio) {
+                // Image constrained by width (looks like wide letterbox)
+                renderWidth = rect.width;
+                renderHeight = rect.width / naturalRatio;
+                leftOffset = 0;
+                topOffset = (rect.height - renderHeight) / 2;
+            } else {
+                // Image constrained by height (looks like tall pillars)
+                renderHeight = rect.height;
+                renderWidth = rect.height * naturalRatio;
+                topOffset = 0;
+                leftOffset = (rect.width - renderWidth) / 2;
+            }
+
+            // Click coordinates relative to the element
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // 2. Check if click is in the "letterbox" (empty space inside img element)
+            if (
+                clickX < leftOffset ||
+                clickX > leftOffset + renderWidth ||
+                clickY < topOffset ||
+                clickY > topOffset + renderHeight
+            ) {
+                // Clicked on empty space (letterbox) -> Treat as background click (Close)
+                // Let event bubble to onClose
+                return;
+            }
+
+            // 3. Pixel Transparency Check
+            // Map click to natural image coordinates
+            const naturalX = Math.floor((clickX - leftOffset) * (img.naturalWidth / renderWidth));
+            const naturalY = Math.floor((clickY - topOffset) * (img.naturalHeight / renderHeight));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+
+            // Draw only the 1x1 pixel we care about
+            ctx.drawImage(img, naturalX, naturalY, 1, 1, 0, 0, 1, 1);
+            const pixel = ctx.getImageData(0, 0, 1, 1).data;
+            const alpha = pixel[3]; // 0-255
+
+            if (alpha < 10) {
+                // Transparent pixel -> Treat as background click
+                return;
+            }
+
+        } catch (err) {
+            console.warn("Smart click check failed (likely CORS), falling back to standard behavior", err);
+            // Fallback: If we can't check, assume it's part of the image
+        }
+
+        // If we got here, it's a solid part of the image
+        e.stopPropagation();
+        if (isEditable) setShowImageMenu(!showImageMenu);
+    };
+
     const handleImageMenuAction = (action) => {
         if (action === 'upload') {
             fileInputRef.current.click();
@@ -123,10 +195,7 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
                     <img
                         src={editedProduct.image}
                         alt={editedProduct.name}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (isEditable) setShowImageMenu(!showImageMenu);
-                        }}
+                        onClick={handleImageClick}
                         style={{
                             maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
                             cursor: isEditable ? 'pointer' : 'default'
