@@ -22,6 +22,7 @@ function App() {
   const [products, setProducts] = useState(APP_DATA); // Initialize directly
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   // Load from local storage on mount
   useEffect(() => {
@@ -202,12 +203,32 @@ function App() {
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           {isAdmin ? (
             <>
-              <button onClick={() => {
-                navigator.clipboard.writeText(window.location.origin);
-                alert("Public link copied! Share this with others.");
-              }} style={{ fontWeight: 500, color: '#444' }}>
-                🔗 Copy Public Link
-              </button>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <button onClick={() => {
+                  navigator.clipboard.writeText(window.location.origin);
+                  setShowToast(true);
+                  setTimeout(() => setShowToast(false), 2000);
+                }} style={{ fontWeight: 500, color: '#444' }}>
+                  🔗 Copy Public Link
+                </button>
+                <span style={{
+                  position: 'absolute',
+                  left: '100%',
+                  marginLeft: '10px',
+                  backgroundColor: '#333',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.7rem',
+                  opacity: showToast ? 1 : 0,
+                  transform: showToast ? 'translateX(0)' : 'translateX(-10px)',
+                  transition: 'all 0.2s ease',
+                  pointerEvents: 'none',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Copied to clipboard!
+                </span>
+              </div>
               <span style={{ color: '#eee' }}>|</span>
               <button onClick={handleReset}>Reset</button>
               <button onClick={handleExport}>Export</button>
