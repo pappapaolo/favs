@@ -184,7 +184,7 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
     const slideVariants = {
         enter: (direction) => ({
             x: direction > 0 ? 1000 : direction < 0 ? -1000 : 0,
-            opacity: 0,
+            opacity: direction === 0 ? 0 : 1, // Solid if sliding, Fade if opening
             zIndex: 0
         }),
         center: {
@@ -195,18 +195,35 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
         exit: (direction) => ({
             zIndex: 0,
             x: direction < 0 ? 1000 : direction > 0 ? -1000 : 0,
-            opacity: direction === 0 ? 1 : 0 // If closing (0), keep opaque so layoutId works. Else fade out for slide.
+            opacity: direction === 0 ? 0 : 1 // Solid if sliding, Fade if closing (backdrop handles fade, but content should disappear so image can fly?)
+            // Actually, for closing (dir=0), we want opacity 1 so image persists for shared element.
+            // But wait, if I set opacity 1 here, does the wrapper stay visible?
+            // The wrapper contains text too. Text needs to fade.
         })
     };
 
+    // Refined Exit Variant logic
+    const wrapperExit = (direction) => {
+        if (direction === 0) {
+            return {
+                opacity: 1, // Keep content visible so image can layoutId out
+                transition: { duration: 0.2 } // Or instant?
+            };
+        }
+        return {
+            x: direction < 0 ? 1000 : direction > 0 ? -1000 : 0,
+            opacity: 1, // Keep solid during slide
+            zIndex: 0
+        };
+    };
 
     return (
         <div
+            onClick={onClose} // CATCH-ALL CLOSE
             style={{
                 position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                 zIndex: 1000,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                // We move usage of cursor pointer to backdrop
             }}
         >
             {/* 1. Backdrop - Handles the dark fade */}
@@ -215,7 +232,6 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                onClick={onClose}
                 style={{
                     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                     backgroundColor: 'var(--color-bg-modal)',
@@ -258,7 +274,17 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                 <motion.div
                     key={product.id}
                     custom={direction}
-                    variants={slideVariants}
+                    variants={{
+                        enter: (direction) => ({
+                            x: direction > 0 ? '100vw' : direction < 0 ? '-100vw' : 0,
+                            opacity: direction === 0 ? 0 : 1
+                        }),
+                        center: { x: 0, opacity: 1 },
+                        exit: (direction) => ({
+                            x: direction < 0 ? '100vw' : direction > 0 ? '-100vw' : 0,
+                            opacity: direction === 0 ? 1 : 1 // Keep solid
+                        })
+                    }}
                     initial="enter"
                     animate="center"
                     exit="exit"
@@ -267,14 +293,15 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                         opacity: { duration: 0.2 }
                     }}
                     className='modal-content-wrapper'
+                    onClick={(e) => e.stopPropagation()} // Stop propagation from wrapper content
                     style={{
-                        position: 'relative', // Context for content
+                        position: 'relative',
                         width: '100%', maxWidth: '1200px', height: '90vh',
                         display: 'grid', gridTemplateColumns: '1.5fr 1fr',
                         gap: '4rem', padding: '2rem',
                         cursor: 'default',
                         color: 'var(--color-text)',
-                        pointerEvents: 'none' // Allow clicks to pass through gaps to backdrop
+                        pointerEvents: 'none'
                     }}
                 >
                     {/* Image Section */}
@@ -282,11 +309,13 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
                             height: '100%',
-                            pointerEvents: 'auto' // Re-enable pointer events for content
+                            pointerEvents: 'auto'
                         }}
                     >
                         <motion.img
-                            layoutId={`product-image-${product.id}`}
+                            // ONLY uses layoutId if Opening/Closing (direction === 0)
+                            // This prevents "flying from grid" during sideways navigation
+                            layoutId={direction === 0 ? `product-image-${product.id}` : undefined}
                             src={editedProduct.image}
                             alt={editedProduct.name}
                             onClick={handleImageClick}
