@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 
-const ProductCard = ({ product, onClick }) => {
+const ProductCard = memo(({ product, onSelect }) => {
   return (
     <div
-      onClick={onClick}
+      onClick={() => onSelect(product)}
       style={{
         cursor: 'pointer',
         padding: '1rem',
@@ -36,6 +37,6 @@ const ProductCard = ({ product, onClick }) => {
       </div>
     </div>
   );
-};
+});
 
 export default ProductCard;

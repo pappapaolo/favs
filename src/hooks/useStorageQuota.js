@@ -15,11 +15,10 @@ export const useStorageQuota = () => {
                 const remaining = total - usage;
                 const isCritical = percentage > 90 || (total > 0 && remaining < 10 * 1024 * 1024);
 
-                setQuota({
-                    usage,
-                    quota: total,
-                    percentage,
-                    isCritical
+                // Only update state if something changed (prevent re-renders)
+                setQuota(prev => {
+                    if (prev.usage === usage && prev.isCritical === isCritical) return prev;
+                    return { usage, quota: total, percentage, isCritical };
                 });
             } catch (err) {
                 console.error("Storage estimate failed", err);

@@ -304,9 +304,8 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                         // pointerEvents: 'none' removed - let normal events bubble
                     }}
                 >
-                    {/* Image Section - explicitly stop propagation on content */}
+                    {/* Image Section */}
                     <div
-                        onClick={(e) => e.stopPropagation()}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
                             height: '100%',

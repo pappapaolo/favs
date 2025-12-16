@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import './index.css';
 import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
@@ -103,6 +104,7 @@ function App() {
             // Else: use default APP_DATA (initial state), no need to write until user acts?
             // Or we could write APP_DATA to DB now to initialize it.
             // Let's leave it in memory until first edit to avoid spamming DB on fresh visit.
+            setProducts(APP_DATA);
           }
         }
       } catch (err) {
@@ -218,6 +220,12 @@ function App() {
     const prevIndex = (currentIndex - 1 + products.length) % products.length;
     setSelectedProduct(products[prevIndex]);
   };
+
+  // Stable handler for product selection
+  const handleSelectProduct = React.useCallback((product) => {
+    setDirection(0);
+    setSelectedProduct(product);
+  }, []);
 
   // Paste logic
   useEffect(() => {
@@ -343,10 +351,7 @@ function App() {
             >
               <ProductCard
                 product={product}
-                onClick={() => {
-                  setDirection(0);
-                  setSelectedProduct(product);
-                }}
+                onSelect={handleSelectProduct}
               />
             </Reorder.Item>
           ))}
