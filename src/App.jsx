@@ -25,7 +25,7 @@ const ORDER_KEY = 'yourtop100_order';
 const DATA_KEY_LEGACY = 'yourtop100_data'; // The old monolithic key
 
 import { useStorageQuota } from './hooks/useStorageQuota';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
   const [products, setProducts] = useState([]); // Start empty to prevent flash of old content
@@ -341,7 +341,12 @@ function App() {
         {selectedProduct && (
           <ProductModal
             product={selectedProduct}
-            onClose={() => setSelectedProduct(null)}
+            onClose={() => {
+              flushSync(() => {
+                setDirection(0);
+              });
+              setSelectedProduct(null);
+            }}
             isEditable={isAdmin}
             onSave={handleProductUpdate}
             onDelete={handleDelete}
