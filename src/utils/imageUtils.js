@@ -21,8 +21,13 @@ export const compressImage = (file, maxWidth = 800, quality = 0.7) => {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Convert to JPEG with reduced quality
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                // Preserve PNG transparency
+                let outputType = 'image/jpeg';
+                if (file.type === 'image/png') {
+                    outputType = 'image/png';
+                }
+
+                const dataUrl = canvas.toDataURL(outputType, quality);
                 resolve(dataUrl);
             };
             img.onerror = (err) => reject(err);
