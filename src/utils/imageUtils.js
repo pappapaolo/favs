@@ -21,13 +21,10 @@ export const compressImage = (file, maxWidth = 800, quality = 0.7) => {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Preserve PNG transparency
-                let outputType = 'image/jpeg';
-                if (file.type === 'image/png') {
-                    outputType = 'image/png';
-                }
-
-                const dataUrl = canvas.toDataURL(outputType, quality);
+                // Use WebP for better compression + transparency support
+                const outputType = 'image/webp';
+                // Quality 0.8 is a good balance
+                const dataUrl = canvas.toDataURL(outputType, 0.8);
                 resolve(dataUrl);
             };
             img.onerror = (err) => reject(err);

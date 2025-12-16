@@ -3,7 +3,7 @@ import './index.css';
 import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
 import { compressImage } from './utils/imageUtils';
-import { get, set } from 'idb-keyval';
+import { get, set, del, getMany } from 'idb-keyval';
 
 // User's specific list
 const APP_DATA = [
@@ -21,6 +21,11 @@ const APP_DATA = [
   // ... (Adding safe fallback)
 ];
 
+const ORDER_KEY = 'yourtop100_order';
+const DATA_KEY_LEGACY = 'yourtop100_data'; // The old monolithic key
+
+import { useStorageQuota } from './hooks/useStorageQuota';
+
 function App() {
   const [products, setProducts] = useState(APP_DATA); // Default fallback
   const [isLoaded, setIsLoaded] = useState(false);
@@ -29,42 +34,82 @@ function App() {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('Copied!');
 
+  // Storage Quota Hook
+  const { usage, quota, percentage, isCritical, checkQuota } = useStorageQuota();
+
   const showToastMessage = (msg) => {
     setToastMsg(msg);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  // Load from IDB (or migrate from localStorage) on mount
+  // Helper to save order
+  const saveOrder = async (order) => {
+    try {
+      await set(ORDER_KEY, order);
+    } catch (e) {
+      console.error("Failed to save order", e);
+      showToastMessage("⚠️ Save failed (Order)");
+    }
+  };
+
+  // Load from IDB (or migrate) on mount
   useEffect(() => {
     console.log("App mounted - Loading data...");
     const loadData = async () => {
       try {
-        // 1. Check for legacy localStorage data (Migration)
-        const legacy = localStorage.getItem('yourtop100_data');
-        if (legacy) {
-          console.log("Migrating from localStorage to IDB...");
-          try {
-            const parsed = JSON.parse(legacy);
-            if (Array.isArray(parsed)) {
-              await set('yourtop100_data', parsed); // Save to IDB
-              setProducts(parsed);
-              localStorage.removeItem('yourtop100_data'); // Cleanup legacy
-            }
-          } catch (e) {
-            console.error("Migration failed", e);
-          }
+        // 1. Check for old monolithic data in IDB (Transition from v1 -> v2)
+        const legacyData = await get(DATA_KEY_LEGACY);
+        if (legacyData && Array.isArray(legacyData)) {
+          console.log("FOUND LEGACY IDB DATA. Commencing migration...");
+          // Migrate: Save each item individually + save order
+          const order = legacyData.map(p => p.id);
+          await Promise.all(legacyData.map(p => set(`product_${p.id}`, p)));
+          await set(ORDER_KEY, order);
+          // Delete legacy key
+          await del(DATA_KEY_LEGACY);
+          console.log("Migration complete.");
+          setProducts(legacyData);
         } else {
-          // 2. Load from IDB
-          const val = await get('yourtop100_data');
-          if (val) {
-            setProducts(val);
+          // 2. Normal load: Get order -> Get items
+          const order = await get(ORDER_KEY);
+          if (order && Array.isArray(order)) {
+            // Fetch all products in parallel
+            // const products = await Promise.all(order.map(id => get(`product_${id}`)));
+            // Optimization: use getMany if available, or parallel get
+            // Note: getMany returns values in order of keys, so we must be careful?
+            // Actually idb-keyval getMany takes an array of keys and returns values in that order.
+            const keys = order.map(id => `product_${id}`);
+            const items = await getMany(keys);
+
+            // Filter out any undefineds (corruption safeguard)
+            const validItems = items.filter(Boolean);
+            setProducts(validItems);
+          } else {
+            // 3. Fallback: Check localStorage legacy (v0 -> v2 direct migration)
+            const localLegacy = localStorage.getItem('yourtop100_data');
+            if (localLegacy) {
+              console.log("Migrating from localStorage...");
+              const parsed = JSON.parse(localLegacy);
+              if (Array.isArray(parsed)) {
+                const order = parsed.map(p => p.id);
+                await Promise.all(parsed.map(p => set(`product_${p.id}`, p)));
+                await set(ORDER_KEY, order);
+                setProducts(parsed);
+                localStorage.removeItem('yourtop100_data');
+              }
+            }
+            // Else: use default APP_DATA (initial state), no need to write until user acts?
+            // Or we could write APP_DATA to DB now to initialize it.
+            // Let's leave it in memory until first edit to avoid spamming DB on fresh visit.
           }
         }
       } catch (err) {
         console.error("Load failed", err);
+        showToastMessage("Error loading data");
       } finally {
         setIsLoaded(true);
+        checkQuota(); // Initial quota check after loading data
       }
     };
     loadData();
@@ -84,16 +129,6 @@ function App() {
     }
   }, []);
 
-  // Save helper
-  const saveProducts = (newProducts) => {
-    setProducts(newProducts);
-    // Async save to IDB (optimistic UI update)
-    set('yourtop100_data', newProducts).catch(err => {
-      console.error("Save failed", err);
-      showToastMessage("⚠️ Save failed (Storage Error)");
-    });
-  };
-
   const handleProductUpdate = (updatedProduct) => {
     // Remove the ephemeral 'isNew' flag so it doesn't persist
     const { isNew, ...cleanProduct } = updatedProduct;
@@ -101,7 +136,15 @@ function App() {
     // Functional update ensuring we work on latest state
     setProducts(current => {
       const newProducts = current.map(p => p.id === cleanProduct.id ? cleanProduct : p);
-      set('yourtop100_data', newProducts).catch(e => console.error("Save failed", e));
+
+      // GRANULAR SAVE: Only save this product
+      set(`product_${cleanProduct.id}`, cleanProduct)
+        .then(() => checkQuota()) // Update quota after save
+        .catch(e => {
+          console.error("Failed to save product", e);
+          showToastMessage("⚠️ Save failed");
+        });
+
       return newProducts;
     });
 
@@ -109,9 +152,19 @@ function App() {
   };
 
   const handleDelete = (id) => {
-    console.log("Deleting instant", id);
-    const newProducts = products.filter(p => p.id !== id);
-    saveProducts(newProducts);
+    console.log("Deleting", id);
+    setProducts(current => {
+      const newProducts = current.filter(p => p.id !== id);
+      const newOrder = newProducts.map(p => p.id);
+
+      // GRANULAR DELETE:
+      // 1. Delete product data
+      del(`product_${id}`).catch(e => console.error("Del failed", e));
+      // 2. Update order
+      saveOrder(newOrder).then(() => checkQuota()); // Update quota
+
+      return newProducts;
+    });
     setSelectedProduct(null);
     return true;
   };
@@ -124,7 +177,20 @@ function App() {
       image: 'https://placehold.co/800x800/png',
       description: 'Description here.'
     };
-    saveProducts([...products, newProd]);
+
+    setProducts(current => {
+      const newProducts = [...current, newProd];
+      const newOrder = newProducts.map(p => p.id);
+
+      // GRANULAR SAVE:
+      // 1. Save new product
+      set(`product_${newId}`, newProd).catch(e => console.error("Add failed", e));
+      // 2. Save new order
+      saveOrder(newOrder).then(() => checkQuota());
+
+      return newProducts;
+    });
+
     setSelectedProduct(newProd);
   };
 
@@ -134,47 +200,48 @@ function App() {
     showToastMessage("Configuration copied to clipboard!");
   };
 
-  // Paste logic (same as before)
+  // Paste logic
   useEffect(() => {
     if (!isAdmin) return;
-    const handlePaste = async (e) => { // Made async
+    const handlePaste = async (e) => {
       console.log("Paste detected");
       if (!isAdmin) { console.log("Not admin, ignoring paste"); return; }
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) { console.log("Input focused, ignoring"); return; }
 
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-      console.log("Clipboard items:", items.length);
       for (let i = 0; i < items.length; i++) {
-        console.log("Checking item", i, items[i].type);
         if (items[i].type.indexOf("image") !== -1) {
           console.log("Image found, processing...");
           const blob = items[i].getAsFile();
-          if (!blob) {
-            console.error("Clipboard item is not a file/blob");
-            showToastMessage("Error: Clipboard data empty.");
-            continue;
-          }
+          if (!blob) continue;
+
           try {
-            const compressedDataUrl = await compressImage(blob); // Use compressImage
+            const compressedDataUrl = await compressImage(blob);
 
             const newProd = {
               id: Date.now(),
               name: 'New Item',
-              image: compressedDataUrl, // Use compressed image
+              image: compressedDataUrl,
               description: 'New pasted item.',
-              isNew: true // Flag for auto-selection
+              isNew: true
             };
 
-            // Use functional update to avoid stale closure
             setProducts(current => {
               const updated = [...current, newProd];
-              // Async save
-              set('yourtop100_data', updated)
-                .then(() => showToastMessage("Image saved to Database!"))
+              const newOrder = updated.map(p => p.id);
+
+              // GRANULAR SAVE
+              set(`product_${newProd.id}`, newProd)
+                .then(() => {
+                  saveOrder(newOrder); // Update order after secure save of item
+                  checkQuota(); // Update quota
+                  showToastMessage("Image saved to Database!");
+                })
                 .catch(err => {
                   console.error("Database Error", err);
                   showToastMessage("⚠️ Database Error: " + err.message);
                 });
+
               return updated;
             });
 
@@ -193,6 +260,19 @@ function App() {
 
   return (
     <div className="app">
+      {/* Critical Storage Warning Banner */}
+      {isCritical && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0,
+          backgroundColor: '#ff4444', color: 'white',
+          padding: '10px', textAlign: 'center', zIndex: 2000,
+          fontWeight: 'bold'
+        }}>
+          ⚠️ STORAGE FULL! You are running out of space ({(usage / 1024 / 1024).toFixed(1)}MB used).
+          Please delete items before adding more images, or changes may not save.
+        </div>
+      )}
+
       <header style={{
         paddingTop: '4rem',
         paddingBottom: '2rem',
@@ -236,6 +316,7 @@ function App() {
           isEditable={isAdmin}
           onSave={handleProductUpdate}
           onDelete={handleDelete}
+          isCriticalStorage={isCritical}
         />
       )}
 
@@ -249,6 +330,13 @@ function App() {
         zIndex: 900
       }}>
         <span>© 2025</span>
+
+        {/* Storage Indicator */}
+        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginRight: 'auto', marginLeft: '20px' }}>
+          disk: {(usage / 1024 / 1024).toFixed(1)}MB / {(quota / 1024 / 1024).toFixed(0)}MB
+          {isCritical && " (FULL)"}
+        </div>
+
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           {isAdmin ? (
             <>
