@@ -333,7 +333,6 @@ function App() {
       <AnimatePresence>
         {selectedProduct && (
           <ProductModal
-            key={selectedProduct.id}
             product={selectedProduct}
             onClose={() => setSelectedProduct(null)}
             isEditable={isAdmin}
