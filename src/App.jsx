@@ -3,9 +3,11 @@ import './index.css';
 import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
 import { compressImage } from './utils/imageUtils';
+import { get, set } from 'idb-keyval';
 
 // User's specific list
 const APP_DATA = [
+  // ... (unchanged)
   { id: 1, name: 'Blue Muji Pen 0.5', image: '/products/muji_pen_1765821401462.png', description: 'Blue click muji pen 0.5' },
   { id: 2, name: 'AirPods Pro 2', image: '/products/airpods_pro_1765821415964.png', description: 'Apple AirPods Pro 2' },
   { id: 3, name: 'MacBook Pro', image: '/products/macbook_pro_1765821428417.png', description: 'MacBook Pro' },
@@ -20,7 +22,8 @@ const APP_DATA = [
 ];
 
 function App() {
-  const [products, setProducts] = useState(APP_DATA); // Initialize directly
+  const [products, setProducts] = useState(APP_DATA); // Default fallback
+  const [isLoaded, setIsLoaded] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -32,23 +35,39 @@ function App() {
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  // Load from local storage on mount
+  // Load from IDB (or migrate from localStorage) on mount
   useEffect(() => {
-    console.log("App mounted");
-    const saved = localStorage.getItem('yourtop100_data');
-    if (saved) {
+    console.log("App mounted - Loading data...");
+    const loadData = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setProducts(parsed);
+        // 1. Check for legacy localStorage data (Migration)
+        const legacy = localStorage.getItem('yourtop100_data');
+        if (legacy) {
+          console.log("Migrating from localStorage to IDB...");
+          try {
+            const parsed = JSON.parse(legacy);
+            if (Array.isArray(parsed)) {
+              await set('yourtop100_data', parsed); // Save to IDB
+              setProducts(parsed);
+              localStorage.removeItem('yourtop100_data'); // Cleanup legacy
+            }
+          } catch (e) {
+            console.error("Migration failed", e);
+          }
         } else {
-          // If saved data is weird, revert
-          console.warn("Saved data invalid, using default");
+          // 2. Load from IDB
+          const val = await get('yourtop100_data');
+          if (val) {
+            setProducts(val);
+          }
         }
-      } catch (e) {
-        console.error("Failed to parse saved data", e);
+      } catch (err) {
+        console.error("Load failed", err);
+      } finally {
+        setIsLoaded(true);
       }
-    }
+    };
+    loadData();
 
     // Check for admin flag in local storage or URL
     const savedAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -65,22 +84,24 @@ function App() {
     }
   }, []);
 
+  // Save helper
   const saveProducts = (newProducts) => {
     setProducts(newProducts);
-    localStorage.setItem('yourtop100_data', JSON.stringify(newProducts));
+    // Async save to IDB (optimistic UI update)
+    set('yourtop100_data', newProducts).catch(err => {
+      console.error("Save failed", err);
+      showToastMessage("⚠️ Save failed (Storage Error)");
+    });
   };
 
   const handleProductUpdate = (updatedProduct) => {
     // Remove the ephemeral 'isNew' flag so it doesn't persist
     const { isNew, ...cleanProduct } = updatedProduct;
 
+    // Functional update ensuring we work on latest state
     setProducts(current => {
       const newProducts = current.map(p => p.id === cleanProduct.id ? cleanProduct : p);
-      try {
-        localStorage.setItem('yourtop100_data', JSON.stringify(newProducts));
-      } catch (e) {
-        console.error("Save failed", e); // Should be caught by quota handler elsewhere but good safety
-      }
+      set('yourtop100_data', newProducts).catch(e => console.error("Save failed", e));
       return newProducts;
     });
 
@@ -147,14 +168,12 @@ function App() {
             // Use functional update to avoid stale closure
             setProducts(current => {
               const updated = [...current, newProd];
-              try {
-                localStorage.setItem('yourtop100_data', JSON.stringify(updated));
-                return updated;
-              } catch (err) {
-                console.error("Storage full!", err);
+              // Async save
+              set('yourtop100_data', updated).catch(err => {
+                console.error("Storage Error", err);
                 showToastMessage("⚠️ Storage full! Image not saved.");
-                return current; // Don't add if storage is full
-              }
+              });
+              return updated;
             });
 
             // Open modal immediately
