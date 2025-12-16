@@ -27,7 +27,7 @@ const DATA_KEY_LEGACY = 'yourtop100_data'; // The old monolithic key
 import { useStorageQuota } from './hooks/useStorageQuota';
 
 function App() {
-  const [products, setProducts] = useState(APP_DATA); // Default fallback
+  const [products, setProducts] = useState([]); // Start empty to prevent flash of old content
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -257,6 +257,13 @@ function App() {
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
   }, [isAdmin]); // Removed 'products' dependency as we use functional update now
+
+  if (!isLoaded) {
+    return <div style={{
+      height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'var(--color-text-muted)', fontSize: '1.2rem'
+    }}>Loading...</div>;
+  }
 
   return (
     <div className="app">

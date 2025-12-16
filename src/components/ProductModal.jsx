@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { compressImage } from '../utils/imageUtils';
 import { Upload, Copy, Download, Search } from 'lucide-react';
 
-const ProductModal = ({ product, onClose, isEditable, onSave, onDelete }) => {
+const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCriticalStorage }) => {
     const [editedProduct, setEditedProduct] = useState(product);
     const [showImageMenu, setShowImageMenu] = useState(false);
     const nameInputRef = useRef(null);
