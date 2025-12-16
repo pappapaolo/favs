@@ -71,9 +71,11 @@ function App() {
   };
 
   const handleProductUpdate = (updatedProduct) => {
-    const newProducts = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+    // Remove the ephemeral 'isNew' flag so it doesn't persist
+    const { isNew, ...cleanProduct } = updatedProduct;
+    const newProducts = products.map(p => p.id === cleanProduct.id ? cleanProduct : p);
     saveProducts(newProducts);
-    setSelectedProduct(updatedProduct); // Keep modal open
+    setSelectedProduct(cleanProduct); // Keep modal open (without isNew flag now)
   };
 
   const handleDelete = (id) => {
@@ -129,7 +131,8 @@ function App() {
               id: Date.now(),
               name: 'New Item',
               image: compressedDataUrl, // Use compressed image
-              description: 'New pasted item.'
+              description: 'New pasted item.',
+              isNew: true // Flag for auto-selection
             };
 
             // Use functional update to avoid stale closure

@@ -97,20 +97,21 @@ button {
   scale: 1.15;
   /* Wiggle is separate, so scale transition is preserved on exit */
   animation: wiggle 0.5s ease-in-out;
+}
 
-  .menu-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: 6px;
-    text-align: left;
-    font-size: 0.9rem;
-    color: var(--color-text);
-    transition: background-color 0.2s;
-  }
+.menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  transition: background-color 0.2s;
+}
 
-  .menu-btn:hover {
-    background-color: var(--color-card-hover);
-  }
+.menu-btn:hover {
+  background-color: var(--color-card-hover);
+}

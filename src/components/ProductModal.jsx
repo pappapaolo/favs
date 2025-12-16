@@ -105,13 +105,13 @@ useEffect(() => {
     };
 }, [onClose]);
 
-// Separate effect for focus to avoid re-running when onClose changes
+// Separate effect for focus/select - ONLY for new items
 useEffect(() => {
-    if (isEditable && nameInputRef.current) {
+    if (isEditable && product.isNew && nameInputRef.current) {
         nameInputRef.current.focus();
         nameInputRef.current.select();
     }
-}, [isEditable]);
+}, [isEditable, product.isNew]);
 
 const handleChange = (field, value) => {
     const newer = { ...editedProduct, [field]: value };
@@ -467,12 +467,13 @@ return (
                         if (onDelete(product.id)) onClose();
                     }}
                     style={{
-                        fontSize: '0.8rem', color: 'var(--color-text-muted)',
+                        fontSize: '0.8rem', color: 'var(--color-text)',
+                        opacity: 0.6,
                         cursor: 'pointer',
                         padding: '10px'
                     }}
-                    onMouseEnter={(e) => e.target.style.color = '#ff4444'}
-                    onMouseLeave={(e) => e.target.style.color = 'var(--color-text-muted)'}
+                    onMouseEnter={(e) => { e.target.style.color = '#ff4444'; e.target.style.opacity = 1; }}
+                    onMouseLeave={(e) => { e.target.style.color = 'var(--color-text)'; e.target.style.opacity = 0.6; }}
                 >
                     Delete Item
                 </span>
