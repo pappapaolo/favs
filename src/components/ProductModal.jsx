@@ -270,27 +270,29 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                 </button>
             )}
 
-            <AnimatePresence initial={false} custom={direction} mode="popLayout">
+            <AnimatePresence initial={false} custom={direction}>
                 <motion.div
                     key={product.id}
                     custom={direction}
                     variants={{
                         enter: (direction) => ({
-                            x: direction > 0 ? '100vw' : direction < 0 ? '-100vw' : 0,
-                            opacity: direction === 0 ? 0 : 1
+                            // x: direction > 0 ? '100vw' : direction < 0 ? '-100vw' : 0, // Removed slide
+                            opacity: 0,
+                            scale: 0.98
                         }),
-                        center: { x: 0, opacity: 1 },
+                        center: { x: 0, opacity: 1, scale: 1 },
                         exit: (direction) => ({
-                            x: direction < 0 ? '100vw' : direction > 0 ? '-100vw' : 0,
-                            opacity: direction === 0 ? 1 : 1
+                            // x: direction < 0 ? '100vw' : direction > 0 ? '-100vw' : 0, // Removed slide
+                            opacity: 0,
+                            scale: 0.98
                         })
                     }}
                     initial="enter"
                     animate="center"
                     exit="exit"
                     transition={{
-                        x: { type: "spring", stiffness: 300, damping: 60 }, // Critical damping (no bounce)
-                        opacity: { duration: 0 }
+                        opacity: { duration: 0.2 },
+                        scale: { duration: 0.2 }
                     }}
                     className='modal-content-wrapper'
                     // REMOVED stopPropagation here to allow clicking gaps to close

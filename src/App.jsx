@@ -248,6 +248,7 @@ function App() {
 
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
       for (let i = 0; i < items.length; i++) {
+        // 1. IMAGE PASTE
         if (items[i].type.indexOf("image") !== -1) {
           console.log("Image found, processing...");
           const blob = items[i].getAsFile();
@@ -289,6 +290,33 @@ function App() {
             console.error("Paste error", err);
             showToastMessage("Error: " + (err.message || "Failed to process image"));
           }
+        }
+        // 2. TEXT/JSON PASTE (Import Config)
+        else if (items[i].type.indexOf("text/plain") !== -1) {
+          items[i].getAsString(async (text) => {
+            try {
+              const importedData = JSON.parse(text);
+              if (Array.isArray(importedData) && importedData.length > 0 && importedData[0].id && importedData[0].name) {
+                console.log("Valid config found, importing...");
+                if (confirm(`Replace current list with ${importedData.length} imported items?`)) {
+                  // 1. Clear old data (optional, but cleaner)
+                  // await clear(); // Dangerous if we want to keep some? Let's just overwrite.
+
+                  // 2. Save all new items
+                  const order = importedData.map(p => p.id);
+                  await Promise.all(importedData.map(p => set(`product_${p.id}`, p)));
+                  await set(ORDER_KEY, order);
+
+                  // 3. Update State
+                  setProducts(importedData);
+                  showToastMessage("Configuration Imported Successfully!");
+                }
+              }
+            } catch (e) {
+              // Not JSON, ignore
+              console.log("Paste was not JSON config");
+            }
+          });
         }
       }
     };
