@@ -21,7 +21,8 @@ const APP_DATA = [
   // ... (Adding safe fallback)
 ];
 
-const ORDER_KEY = 'yourtop100_order';
+const ORDER_KEY = 'favs_order';
+const OLD_ORDER_KEY = 'yourtop100_order'; // For v2 -> v3 migration
 const DATA_KEY_LEGACY = 'yourtop100_data'; // The old monolithic key
 
 import { useStorageQuota } from './hooks/useStorageQuota';
@@ -73,7 +74,18 @@ function App() {
           setProducts(legacyData);
         } else {
           // 2. Normal load: Get order -> Get items
-          const order = await get(ORDER_KEY);
+          let order = await get(ORDER_KEY);
+          // Migration from v2 (yourtop100_order) -> v3 (favs_order)
+          if (!order) {
+            const oldOrder = await get(OLD_ORDER_KEY);
+            if (oldOrder) {
+              console.log("Migrating order from yourtop100 to favs...");
+              order = oldOrder;
+              await set(ORDER_KEY, order);
+              // Optional: await del(OLD_ORDER_KEY); // Keep strictly for safety for now
+            }
+          }
+
           if (order && Array.isArray(order)) {
             // Fetch all products in parallel
             // const products = await Promise.all(order.map(id => get(`product_${id}`)));
@@ -319,9 +331,10 @@ function App() {
           marginBottom: '2rem',
           marginTop: '2rem',
           letterSpacing: '-0.05em',
-          color: 'var(--color-text)'
+          color: 'var(--color-text)',
+          fontFamily: '"Shadows Into Light", cursive'
         }}>
-          the best things
+          FAVS
         </h1>
       </header>
 
