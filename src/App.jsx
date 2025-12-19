@@ -426,13 +426,12 @@ function App() {
         backdropFilter: 'blur(10px)',
         zIndex: 900
       }}>
-        <span>© 2025</span>
-
-        {/* Storage Indicator */}
-        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginRight: 'auto', marginLeft: '20px' }}>
+        {/* Storage Indicator - REMOVED */}
+        {/* <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginRight: 'auto', marginLeft: '20px' }}>
           disk: {(usage / 1024 / 1024).toFixed(1)}MB / {(quota / 1024 / 1024).toFixed(0)}MB
           {isCritical && " (FULL)"}
-        </div>
+        </div> */}
+        <div style={{ marginRight: 'auto' }}></div>
 
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           {isAdmin ? (
