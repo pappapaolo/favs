@@ -190,10 +190,8 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
 
     return (
         <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            // Removed root opacity fade to allow image to be visible immediately for layoutId
+            className='modal-root'
             onClick={onClose} // CATCH-ALL CLOSE
             style={{
                 position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -202,7 +200,11 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
             }}
         >
             {/* 1. Backdrop */}
-            <div
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 style={{
                     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                     backgroundColor: 'var(--color-bg-modal)',
@@ -214,50 +216,42 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
             {/* Navigation Arrows */}
             {!isEditable && onPrev && (
                 <button
+                    className="nav-arrow"
                     onClick={(e) => { e.stopPropagation(); onPrev(); }}
                     style={{
                         position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)',
                         background: 'none', border: 'none', color: 'var(--color-text-muted)',
                         cursor: 'pointer', padding: '20px', zIndex: 1001
                     }}
-                    onMouseEnter={(e) => e.target.style.color = 'var(--color-text)'}
-                    onMouseLeave={(e) => e.target.style.color = 'var(--color-text-muted)'}
                 >
                     <ChevronLeft size={48} />
                 </button>
             )}
             {!isEditable && onNext && (
                 <button
+                    className="nav-arrow"
                     onClick={(e) => { e.stopPropagation(); onNext(); }}
                     style={{
                         position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)',
                         background: 'none', border: 'none', color: 'var(--color-text-muted)',
                         cursor: 'pointer', padding: '20px', zIndex: 1001
                     }}
-                    onMouseEnter={(e) => e.target.style.color = 'var(--color-text)'}
-                    onMouseLeave={(e) => e.target.style.color = 'var(--color-text-muted)'}
                 >
                     <ChevronRight size={48} />
                 </button>
             )}
 
             <div
-                className='modal-content-wrapper'
+                className='modal-content-wrapper modal-content-grid'
                 style={{
-                    position: 'relative',
-                    width: '100%', maxWidth: '1200px', height: '90vh',
-                    display: 'grid', gridTemplateColumns: '1.5fr 1fr',
-                    gap: '4rem', padding: '2rem',
-                    cursor: 'default',
                     color: 'var(--color-text)',
-                    zIndex: 1002 // Content above backdrop
                 }}
             >
                 {/* Image Section - NO FADE ANIMATION ON WRAPPER */}
                 <div
                     style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-                        height: '100%',
+                        height: '100%', minHeight: '300px' // min-height for mobile visibility
                     }}
                 >
                     <motion.img
@@ -274,7 +268,9 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
                     />
                     <div style={{ display: 'none', position: 'absolute' }}>Image Load Failed</div>
+                    {/* ... (Image Menu Overlay hidden for brevity in this replace block, assuming it's part of the ... above or below logic, no wait, I need to include it if I'm replacing the block) */}
 
+                    {/* Re-including Image Menu logic to ensure it's not lost since I'm targeting a large block */}
                     {/* Image Menu Overlay */}
                     {isEditable && showImageMenu && (
                         <div
@@ -335,10 +331,11 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                     exit="exit"
                     transition={{ duration: 0.2 }}
                     style={{
-                        display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingRight: '2rem',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                        // removed paddingRight inline as CSS handles padding
                     }}
                 >
-                    {/* Interactive Content Container - Blocks clicks only on the actual content */}
+                    {/* Interactive Content Container */}
                     <div onClick={(e) => e.stopPropagation()} style={{ width: '100%' }}>
                         {isEditable ? (
                             <>
@@ -359,7 +356,6 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                                     ref={nameInputRef}
                                     value={editedProduct.name}
                                     onChange={(e) => handleChange('name', e.target.value)}
-                                    // Removed redundant stopPropagation
                                     onKeyDown={handleNameKeyDown}
                                     style={{
                                         fontSize: '2rem', marginBottom: '1rem', fontWeight: 600,
@@ -445,6 +441,11 @@ const ProductModal = ({ product, onClose, isEditable, onSave, onDelete, isCritic
                                 )}
                             </>
                         )}
+
+                        {/* Mobile Close Button */}
+                        <button className="mobile-close-btn" onClick={onClose}>
+                            Close
+                        </button>
                     </div>
                 </motion.div>
             </div>

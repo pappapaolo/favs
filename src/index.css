@@ -115,3 +115,62 @@ button {
 .menu-btn:hover {
   background-color: var(--color-card-hover);
 }
+
+/* Modal Layout */
+.modal-content-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 4rem;
+  width: 100%;
+  max-width: 1200px;
+  height: 90vh;
+  padding: 2rem;
+  position: relative;
+  z-index: 1002;
+  /* Content above backdrop */
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .modal-content-grid {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    /* Let it scroll */
+    min-height: 100vh;
+    padding: 1rem;
+    gap: 1.5rem;
+    padding-top: 4rem;
+    /* Space for potentially fixed header or just breathing room */
+  }
+
+  /* Adjust Modal positioning to allow scrolling on mobile */
+  .modal-root {
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+  }
+}
+
+.mobile-close-btn {
+  display: none;
+  width: 100%;
+  padding: 16px;
+  margin-top: 2rem;
+  background-color: var(--color-text);
+  color: var(--color-bg);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .mobile-close-btn {
+    display: block;
+  }
+
+  /* Hide side arrows on mobile as they might overlap content */
+  .nav-arrow {
+    display: none !important;
+  }
+}

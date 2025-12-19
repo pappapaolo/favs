@@ -386,6 +386,7 @@ function App() {
             <Reorder.Item
               key={product.id}
               value={product}
+              dragListener={window.innerWidth > 768} // Disable drag on mobile
               style={{ position: 'relative' }} // ensure z-index works during drag
               whileDrag={{ scale: 1.05, zIndex: 100 }}
             >
